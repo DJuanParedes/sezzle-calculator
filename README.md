@@ -1,5 +1,7 @@
 # Calc — full-stack calculator
 
+[![Tests and build](https://github.com/DJuanParedes/sezzle-calculator/actions/workflows/ci.yml/badge.svg)](https://github.com/DJuanParedes/sezzle-calculator/actions/workflows/ci.yml)
+
 A focused calculator built for the Sezzle take-home assignment. React + TypeScript provide the interface; a Go REST microservice performs **every calculation**. Includes seven operations, responsive layout, accessible labels, keyboard submission, error recovery, and the last five successful calculations in session memory.
 
 ## Quick start
@@ -97,9 +99,9 @@ Backend:
 ```sh
 cd backend
 go vet ./...
-go test -coverprofile=coverage.out ./...
-go tool cover -func=coverage.out
-go tool cover -html=coverage.out -o coverage.html
+go test "-coverprofile=coverage.out" ./...
+go tool cover "-func=coverage.out"
+go tool cover "-html=coverage.out" -o coverage.html
 ```
 
 Run `go test -race ./...` on a supported environment; GitHub Actions runs this on Linux. Windows race detection requires an appropriate C toolchain.
@@ -147,4 +149,3 @@ backend/
 ## AI assistance
 
 AI tooling was explicitly permitted by the assignment. The requirements, prompts, implementation workflow, and review scope are disclosed in [PROMPTS.md](PROMPTS.md). Tests and coverage are actual executed results, not estimated percentages. The candidate should review the implementation and be prepared to explain these decisions.
-
