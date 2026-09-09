@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { calculate } from "./api";
 
 type Entry = { id: number; expression: string; result: number; mode: string };
@@ -50,8 +56,16 @@ export default function App() {
   const sequence = useRef(0);
   const input = useRef<HTMLInputElement>(null);
   const answer = useRef(0);
+  const caret = useRef<number | null>(null);
   useEffect(() => () => request.current?.abort(), []);
-  function edit(value: string) {
+  useLayoutEffect(() => {
+    if (caret.current !== null) {
+      input.current!.setSelectionRange(caret.current, caret.current);
+      caret.current = null;
+    }
+  });
+  function edit(value: string, position: number | null = null) {
+    caret.current = position;
     setExpression(value);
     setResult(null);
     setError("");
@@ -61,11 +75,11 @@ export default function App() {
     const start = field.selectionStart ?? expression.length;
     const end = field.selectionEnd ?? start;
     const value = token === "Ans" ? `(${answer.current})` : token;
-    edit(expression.slice(0, start) + value + expression.slice(end));
-    field.focus();
-    window.requestAnimationFrame(() =>
-      field.setSelectionRange(start + value.length, start + value.length),
+    edit(
+      expression.slice(0, start) + value + expression.slice(end),
+      start + value.length,
     );
+    field.focus();
   }
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -217,6 +231,7 @@ export default function App() {
                           0,
                           start === end ? Math.max(0, start - 1) : start,
                         ) + expression.slice(end),
+                        start === end ? Math.max(0, start - 1) : start,
                       );
                       field.focus();
                     }}
