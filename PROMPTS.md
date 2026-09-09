@@ -5,6 +5,11 @@
 The candidate supplied the Sezzle assignment and asked (in Spanish):
 “porfavor ten en cuenta todo lo que te dice y hazlo bien, me mandas el link.”
 
+Follow-up request:
+“que no haiga en el codigo como quien dice frases o asi que digan de que es el codigo solo el read mi y el documento”
+
+The follow-up removed explanatory source comments and assignment/technology labels from the app. Architecture explanations and AI disclosure remain in the README and documents.
+
 ## Assignment supplied to the assistant
 
 Build a full-stack calculator with a React frontend and REST backend microservice (TypeScript and Go preferred). Support addition, subtraction, multiplication and division; optional exponentiation, square root and percentage. Include intuitive responsive UI, input validation, errors such as division by zero, JSON results, clean maintainable architecture, frontend/backend unit tests, coverage report, setup/API/design documentation, optional Docker deployment, and a Git repository link. Share all AI prompts. Prioritize correctness, clarity and maintainability within the suggested 2–4 hour scope.

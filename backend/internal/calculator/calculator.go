@@ -1,4 +1,3 @@
-// Package calculator contains pure arithmetic, independent of HTTP and storage.
 package calculator
 
 import (
@@ -13,7 +12,6 @@ var (
 	ErrDomain         = errors.New("The result is not a finite real number.")
 )
 
-// Calculate uses IEEE 754 float64 arithmetic. Percentage means a percent of b.
 func Calculate(operation string, operands []float64) (float64, error) {
 	count := 2
 	switch operation {
@@ -60,6 +58,6 @@ func Calculate(operation string, operands []float64) (float64, error) {
 	}
 	if result == 0 {
 		result = 0
-	} // Normalize negative zero for JSON/display.
+	}
 	return result, nil
 }

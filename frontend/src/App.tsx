@@ -271,9 +271,6 @@ export default function App() {
       </main>
       <footer>
         <span>Made for a moment of clarity.</span>
-        <span>
-          REACT + GO <span className="footer-dot">•</span> SEZZLE TAKE-HOME
-        </span>
       </footer>
     </div>
   );

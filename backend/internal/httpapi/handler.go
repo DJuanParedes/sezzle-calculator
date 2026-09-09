@@ -34,7 +34,6 @@ func fail(w http.ResponseWriter, status int, code, message string) {
 	respond(w, status, body)
 }
 
-// NewHandler exposes only API routes; static hosting belongs to the server.
 func NewHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/health" {

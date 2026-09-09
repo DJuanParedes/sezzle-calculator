@@ -76,8 +76,7 @@ a {
 .eyebrow,
 .step,
 .result-label,
-.history-heading > span,
-footer > span:last-child {
+.history-heading > span {
   font-size: 10px;
   letter-spacing: 1.8px;
   font-weight: 700;
@@ -434,14 +433,6 @@ footer {
   gap: 20px;
   color: #7a826f;
   font-size: 11px;
-}
-footer > span:last-child {
-  font-size: 8px;
-  letter-spacing: 1.3px;
-}
-.footer-dot {
-  margin: 0 8px;
-  color: #95a77d;
 }
 @media (min-width: 1400px) {
   main {
