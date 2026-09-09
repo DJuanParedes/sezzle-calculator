@@ -45,7 +45,7 @@ func NewHandler() http.Handler {
 			respond(w, 200, map[string]string{"status": "ok"})
 			return
 		}
-		if r.URL.Path != "/api/calculate" {
+		if r.URL.Path != "/api/calculate" && r.URL.Path != "/api/evaluate" {
 			fail(w, 404, "not_found", "Endpoint not found.")
 			return
 		}
@@ -62,6 +62,27 @@ func NewHandler() http.Handler {
 		r.Body = http.MaxBytesReader(w, r.Body, 4096)
 		decoder := json.NewDecoder(r.Body)
 		decoder.DisallowUnknownFields()
+		if r.URL.Path == "/api/evaluate" {
+			var input struct {
+				Expression string `json:"expression"`
+				AngleMode  string `json:"angleMode"`
+			}
+			if err := decoder.Decode(&input); err != nil {
+				decodeError(w, err)
+				return
+			}
+			if err := decoder.Decode(&struct{}{}); err != io.EOF {
+				decodeError(w, err)
+				return
+			}
+			result, err := calculator.Evaluate(input.Expression, input.AngleMode)
+			if err != nil {
+				fail(w, 400, "invalid_expression", err.Error())
+				return
+			}
+			respond(w, 200, map[string]float64{"result": result})
+			return
+		}
 		var input request
 		if err := decoder.Decode(&input); err != nil {
 			decodeError(w, err)

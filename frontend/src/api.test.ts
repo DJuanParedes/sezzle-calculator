@@ -3,6 +3,18 @@ import { calculate } from "./api";
 const input = { operation: "add" as const, operands: [2, 3] };
 afterEach(() => vi.unstubAllGlobals());
 describe("API client", () => {
+  it("posts scientific expressions and angle mode", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValue({ ok: true, json: async () => ({ result: 1 }) });
+    vi.stubGlobal("fetch", fetch);
+    const expression = { expression: "sin(pi/2)", angleMode: "rad" as const };
+    expect(await calculate(expression)).toBe(1);
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/evaluate",
+      expect.objectContaining({ body: JSON.stringify(expression) }),
+    );
+  });
   it("posts numeric operands and forwards the cancellation signal", async () => {
     const fetch = vi
       .fn()
@@ -20,12 +32,10 @@ describe("API client", () => {
   it("surfaces a structured server error", async () => {
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValue({
-          ok: false,
-          json: async () => ({ error: { message: "Cannot divide by zero." } }),
-        }),
+      vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ error: { message: "Cannot divide by zero." } }),
+      }),
     );
     await expect(calculate(input)).rejects.toThrow("Cannot divide by zero.");
   });

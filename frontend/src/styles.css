@@ -548,3 +548,171 @@ footer {
       border-color 0.15s;
   }
 }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.scientific-app main {
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 64px;
+}
+.scientific-app .intro h1 {
+  font-size: clamp(48px, 5.3vw, 76px);
+}
+.scientific-card {
+  padding: 28px;
+}
+.angle-toggle {
+  display: flex;
+  background: #eeeee5;
+  border-radius: 9px;
+  padding: 3px;
+  gap: 3px;
+}
+.angle-toggle button {
+  border: 0;
+  background: transparent;
+  padding: 7px 11px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #5b6253;
+}
+.angle-toggle button[aria-pressed="true"] {
+  background: #344b2a;
+  color: white;
+}
+.scientific-display {
+  background: #eff3e6;
+  border: 1px solid #dce4cd;
+  border-radius: 14px;
+  padding: 20px;
+}
+.scientific-display label {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: #667257;
+}
+.scientific-display input {
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+  margin: 12px 0;
+  padding: 6px 0;
+  font-size: 20px;
+  color: #283721;
+}
+.scientific-result {
+  text-align: right;
+  font-family: Manrope, sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  min-height: 50px;
+}
+.scientific-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0;
+}
+.scientific-tools span {
+  flex: 1;
+  font-size: 11px;
+  color: #727965;
+}
+.scientific-tools button {
+  border: 1px solid #dddcd1;
+  background: #f5f1e8;
+  border-radius: 8px;
+  min-width: 48px;
+  height: 34px;
+  color: #685940;
+}
+.scientific-keys {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+.scientific-keys button {
+  min-height: 46px;
+  border: 1px solid #e1e3d8;
+  border-radius: 10px;
+  font-size: 17px;
+  color: #35432e;
+  transition:
+    background 0.15s,
+    transform 0.15s;
+}
+.scientific-keys button:hover {
+  filter: brightness(0.96);
+  transform: translateY(-1px);
+}
+.number-key {
+  background: #fff;
+  font-weight: 600;
+}
+.function-key {
+  background: #edf1e5;
+}
+.scientific-keys .equals-key {
+  background: #344b2a;
+  color: #fff;
+  border-color: #344b2a;
+  font-size: 25px;
+}
+.scientific-card .number-help {
+  line-height: 1.7;
+  margin-bottom: 0;
+  font-size: 11px;
+}
+.history li {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 900px) {
+  .scientific-app main {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+  .scientific-app .intro h1 br {
+    display: none;
+  }
+  .scientific-app .intro h1 em:before {
+    content: " ";
+  }
+  .scientific-app .intro-detail,
+  .scientific-app .math-art,
+  .scientific-app .intro-rule {
+    display: none;
+  }
+}
+@media (max-width: 480px) {
+  .scientific-card {
+    padding: 18px;
+  }
+  .scientific-keys {
+    gap: 6px;
+  }
+  .scientific-keys button {
+    min-height: 44px;
+    font-size: 16px;
+  }
+  .scientific-display {
+    padding: 14px;
+  }
+  .scientific-result {
+    font-size: 30px;
+  }
+  .scientific-app .intro h1 {
+    font-size: 42px;
+  }
+}

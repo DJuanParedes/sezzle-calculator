@@ -1,15 +1,18 @@
 import type { Calculation } from "./calculator";
 
 export async function calculate(
-  input: Calculation,
+  input: Calculation | { expression: string; angleMode: "deg" | "rad" },
   signal?: AbortSignal,
 ): Promise<number> {
-  const response = await fetch("/api/calculate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-    signal,
-  });
+  const response = await fetch(
+    "expression" in input ? "/api/evaluate" : "/api/calculate",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+      signal,
+    },
+  );
   let data: unknown;
   try {
     data = await response.json();

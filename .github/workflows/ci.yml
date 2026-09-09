@@ -63,3 +63,4 @@ jobs:
           done
           curl --fail http://localhost:8080/ | grep 'Calc'
           curl --fail -H 'Content-Type: application/json' -d '{"operation":"add","operands":[2,3]}' http://localhost:8080/api/calculate | grep '"result":5'
+          curl --fail -H 'Content-Type: application/json' -d '{"expression":"sin(30)+2^3","angleMode":"deg"}' http://localhost:8080/api/evaluate | grep '"result":8.5'

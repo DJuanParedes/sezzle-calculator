@@ -16,189 +16,136 @@ afterEach(() => {
   vi.resetAllMocks();
   vi.useRealTimers();
 });
-async function fill(a = "24", b = "8") {
-  const user = userEvent.setup();
-  await user.type(screen.getByLabelText("First value"), a);
-  await user.type(screen.getByLabelText("Second value"), b);
-  return user;
-}
-describe("calculator UI", () => {
-  it("starts empty and validates before making a request", async () => {
+const field = () => screen.getByRole("textbox", { name: "EXPRESSION" });
+const run = () =>
+  fireEvent.submit(
+    screen.getByRole("button", { name: "Calculate" }).closest("form")!,
+  );
+describe("scientific calculator", () => {
+  it("validates empty and oversized input", () => {
     render(<App />);
-    expect(screen.getByText("Room for an answer.")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Calculate" }));
-    expect(screen.getByRole("alert")).toHaveTextContent("first value");
+    run();
+    expect(screen.getByRole("alert")).toHaveTextContent("1–512");
+    fireEvent.change(field(), { target: { value: "1".repeat(513) } });
+    run();
     expect(api).not.toHaveBeenCalled();
   });
-  it("submits via Enter and uses the server result", async () => {
-    api.mockResolvedValue(32);
+  it("submits expressions via Enter and changes angle mode", async () => {
+    api.mockResolvedValue(0.5);
     render(<App />);
-    const user = await fill();
-    await user.keyboard("{Enter}");
+    await userEvent.type(field(), "sin(30){Enter}");
     await waitFor(() =>
-      expect(screen.getByRole("status")).toHaveTextContent("32"),
+      expect(screen.getByRole("status")).toHaveTextContent("0.5"),
     );
     expect(api).toHaveBeenCalledWith(
-      { operation: "add", operands: [24, 8] },
+      { expression: "sin(30)", angleMode: "deg" },
       expect.any(AbortSignal),
     );
-    expect(
-      screen.getByRole("region", { name: "Recent calculations" }),
-    ).toHaveTextContent("24 + 8");
-  });
-  it("supports all operation buttons and unary square root", async () => {
-    api.mockResolvedValue(3);
-    render(<App />);
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Square root" }));
-    expect(screen.queryByLabelText("Second value")).not.toBeInTheDocument();
-    await user.type(screen.getByLabelText("First value"), "9");
-    await user.click(screen.getByRole("button", { name: "Calculate" }));
+    fireEvent.click(screen.getByRole("button", { name: "RAD" }));
+    expect(screen.getByText("Radians")).toBeInTheDocument();
+    run();
     await waitFor(() =>
-      expect(screen.getByRole("status")).toHaveTextContent("√(9)"),
+      expect(api).toHaveBeenLastCalledWith(
+        { expression: "sin(30)", angleMode: "rad" },
+        expect.any(AbortSignal),
+      ),
     );
-    expect(api).toHaveBeenCalledWith(
-      { operation: "sqrt", operands: [9] },
-      expect.any(AbortSignal),
-    );
-    await user.click(screen.getByRole("button", { name: "Power" }));
-    expect(screen.getByLabelText("Exponent")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "DEG" }));
   });
-  it("labels and submits percentage unambiguously", async () => {
-    api.mockResolvedValue(30);
+  it("inserts keypad functions and replaces selected text", async () => {
     render(<App />);
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Percentage" }));
-    await user.type(
-      screen.getByLabelText("Percentage", { selector: "input" }),
-      "15",
-    );
-    await user.type(screen.getByLabelText("Of this number"), "200");
-    await user.click(screen.getByRole("button", { name: "Calculate" }));
+    await userEvent.click(screen.getByRole("button", { name: "sin" }));
+    expect(field()).toHaveValue("sin(");
+    fireEvent.change(field(), { target: { value: "12" } });
+    (field() as HTMLInputElement).setSelectionRange(0, 2);
+    await userEvent.click(screen.getByRole("button", { name: "π" }));
+    expect(field()).toHaveValue("pi");
     await waitFor(() =>
-      expect(screen.getByRole("status")).toHaveTextContent("15% of 200"),
-    );
-    expect(api).toHaveBeenCalledWith(
-      { operation: "percentage", operands: [15, 200] },
-      expect.any(AbortSignal),
+      expect((field() as HTMLInputElement).selectionStart).toBe(2),
     );
   });
-  it("prevents division by zero without sending a request", async () => {
+  it("clears and deletes characters or selection", () => {
     render(<App />);
-    const user = await fill("8", "0");
-    await user.click(screen.getByRole("button", { name: "Divide" }));
-    await user.click(screen.getByRole("button", { name: "Calculate" }));
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Cannot divide by zero",
-    );
-    expect(api).not.toHaveBeenCalled();
+    fireEvent.change(field(), { target: { value: "123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Backspace" }));
+    expect(field()).toHaveValue("12");
+    (field() as HTMLInputElement).setSelectionRange(0, 2);
+    fireEvent.click(screen.getByRole("button", { name: "Backspace" }));
+    expect(field()).toHaveValue("");
+    fireEvent.click(screen.getByRole("button", { name: "Backspace" }));
+    fireEvent.change(field(), { target: { value: "42" } });
+    fireEvent.click(screen.getByRole("button", { name: "AC" }));
+    expect(field()).toHaveValue("");
+    expect(field()).toHaveFocus();
+    fireEvent.change(field(), { target: { value: "2" } });
+    fireEvent.keyDown(field(), { key: "Escape" });
+    expect(field()).toHaveValue("");
   });
-  it("disables editing and avoids duplicate requests while pending", async () => {
-    let resolve!: (n: number) => void;
-    api.mockImplementation(
-      () =>
-        new Promise((r) => {
-          resolve = r;
-        }),
-    );
+  it("recalls the last answer and limits history to five", async () => {
+    api.mockResolvedValue(42);
     render(<App />);
-    const user = await fill();
-    await user.click(screen.getByRole("button", { name: "Calculate" }));
-    expect(screen.getByLabelText("First value")).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Calculating…" })).toBeDisabled();
-    fireEvent.submit(
-      screen.getByRole("button", { name: "Calculating…" }).closest("form")!,
-    );
-    expect(api).toHaveBeenCalledTimes(1);
-    await act(async () => resolve(32));
-    expect(screen.getByLabelText("First value")).toBeEnabled();
-  });
-  it("reports API errors and permits retry", async () => {
-    api
-      .mockRejectedValueOnce(
-        new Error("The result is not a finite real number."),
-      )
-      .mockResolvedValueOnce(32);
-    render(<App />);
-    const user = await fill();
-    await user.click(screen.getByRole("button", { name: "Calculate" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "finite real number",
-    );
-    await user.click(screen.getByRole("button", { name: "Calculate" }));
-    await waitFor(() =>
-      expect(screen.getByRole("status")).toHaveTextContent("32"),
-    );
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-  });
-  it("reports network failures", async () => {
-    api.mockRejectedValue(new TypeError("Failed to fetch"));
-    render(<App />);
-    const user = await fill();
-    await user.click(screen.getByRole("button", { name: "Calculate" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Cannot reach the server",
-    );
-  });
-  it("clears inputs, errors and result and restores focus", async () => {
-    api.mockResolvedValue(32);
-    render(<App />);
-    const user = await fill();
-    await user.click(screen.getByRole("button", { name: "Calculate" }));
-    await screen.findByText("24 + 8", { selector: ".result-expression" });
-    await user.click(screen.getByRole("button", { name: "Clear" }));
-    expect(screen.getByLabelText("First value")).toHaveValue("");
-    expect(screen.getByLabelText("Second value")).toHaveValue("");
-    expect(screen.getByLabelText("First value")).toHaveFocus();
-    expect(screen.getByText("Room for an answer.")).toBeInTheDocument();
-  });
-  it("keeps only five calculations and can clear history", async () => {
-    api.mockResolvedValue(1);
-    render(<App />);
-    const user = await fill("1", "0");
     for (let i = 0; i < 6; i++) {
-      await user.click(screen.getByRole("button", { name: "Calculate" }));
+      fireEvent.change(field(), { target: { value: String(i) } });
+      run();
       await waitFor(() =>
         expect(screen.getByRole("button", { name: "Calculate" })).toBeEnabled(),
       );
     }
-    const history = screen.getByRole("region", { name: "Recent calculations" });
-    expect(within(history).getAllByRole("listitem")).toHaveLength(5);
-    await user.click(screen.getByRole("button", { name: "Clear history" }));
-    expect(within(history).queryByRole("list")).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole("list")).getAllByRole("listitem"),
+    ).toHaveLength(5);
+    fireEvent.click(screen.getByRole("button", { name: "AC" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ans" }));
+    expect(field()).toHaveValue("(42)");
+    fireEvent.click(screen.getByRole("button", { name: "Clear history" }));
+    expect(screen.queryByRole("list")).not.toBeInTheDocument();
   });
-  it("times out a stalled request and aborts it", async () => {
+  it.each([
+    new Error("Cannot divide by zero."),
+    new TypeError("Failed to fetch"),
+  ])("shows errors and allows retry: %s", async (error) => {
+    api.mockRejectedValueOnce(error).mockResolvedValue(2);
+    render(<App />);
+    fireEvent.change(field(), { target: { value: "1/0" } });
+    run();
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        error instanceof TypeError ? "Cannot reach" : "Cannot divide",
+      ),
+    );
+    fireEvent.change(field(), { target: { value: "1+1" } });
+    run();
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("2"),
+    );
+  });
+  it("prevents duplicate requests and aborts on unmount", () => {
+    api.mockImplementation(() => new Promise(() => {}));
+    const view = render(<App />);
+    fireEvent.change(field(), { target: { value: "1+2" } });
+    run();
+    run();
+    expect(api).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("status")).toHaveTextContent("Calculating");
+    expect(screen.getByRole("button", { name: "Calculate" })).toBeDisabled();
+    const signal = api.mock.calls[0][1]!;
+    view.unmount();
+    expect(signal.aborted).toBe(true);
+  });
+  it("times out requests", async () => {
     vi.useFakeTimers();
     api.mockImplementation(
-      (_input, signal) =>
-        new Promise((_resolve, reject) => {
-          signal?.addEventListener("abort", () =>
-            reject(new DOMException("Aborted", "AbortError")),
-          );
-        }),
+      (_, signal) =>
+        new Promise((_, reject) =>
+          signal!.addEventListener("abort", () => reject(new Error("aborted"))),
+        ),
     );
     render(<App />);
-    fireEvent.change(screen.getByLabelText("First value"), {
-      target: { value: "1" },
-    });
-    fireEvent.change(screen.getByLabelText("Second value"), {
-      target: { value: "2" },
-    });
-    fireEvent.submit(
-      screen.getByRole("button", { name: "Calculate" }).closest("form")!,
-    );
+    fireEvent.change(field(), { target: { value: "1" } });
+    run();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(10000);
     });
     expect(screen.getByRole("alert")).toHaveTextContent("timed out");
-  });
-  it("aborts in-flight work on unmount", async () => {
-    api.mockImplementation(() => new Promise(() => {}));
-    const { unmount } = render(<App />);
-    const user = await fill();
-    await user.click(screen.getByRole("button", { name: "Calculate" }));
-    const signal = api.mock.calls[0][1]!;
-    unmount();
-    expect(signal.aborted).toBe(true);
   });
 });

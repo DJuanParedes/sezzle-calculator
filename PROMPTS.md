@@ -77,3 +77,9 @@ The candidate pasted the following assignment requirements in the same prompt (g
 ## Verification and responsibility
 
 See README and docs/COVERAGE.md for executed checks. No claims are made that a test suite proves all possible behavior. The code uses floating-point arithmetic and is not intended for financial accounting. The candidate should read and understand the code, tests, and documented assumptions before submitting.
+
+## Scientific calculator follow-up
+
+User prompt: "que sea una calculador cientifica".
+
+Implemented a React scientific keypad with DEG/RAD, expression input and answer recall; a bounded Go expression parser; scientific API validation; unit tests; updated documentation and CI smoke checks. The earlier request to keep explanatory text in documentation rather than source comments remains in effect.

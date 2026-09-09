@@ -1,36 +1,79 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { calculate } from "./api";
-import {
-  expression,
-  operations,
-  parseOperands,
-  type Operation,
-} from "./calculator";
 
-type Entry = { id: number; expression: string; result: number };
+type Entry = { id: number; expression: string; result: number; mode: string };
+const keys = [
+  ["sin", "sin("],
+  ["cos", "cos("],
+  ["tan", "tan("],
+  ["(", "("],
+  [")", ")"],
+  ["asin", "asin("],
+  ["acos", "acos("],
+  ["atan", "atan("],
+  ["π", "pi"],
+  ["e", "e"],
+  ["ln", "ln("],
+  ["log", "log("],
+  ["√", "sqrt("],
+  ["xʸ", "^"],
+  ["x!", "!"],
+  ["7", "7"],
+  ["8", "8"],
+  ["9", "9"],
+  ["÷", "/"],
+  ["abs", "abs("],
+  ["4", "4"],
+  ["5", "5"],
+  ["6", "6"],
+  ["×", "*"],
+  ["exp", "exp("],
+  ["1", "1"],
+  ["2", "2"],
+  ["3", "3"],
+  ["−", "-"],
+  ["%", "%"],
+  ["0", "0"],
+  [".", "."],
+  ["Ans", "Ans"],
+  ["+", "+"],
+  ["=", "="],
+];
 export default function App() {
-  const [operation, setOperation] = useState<Operation>("add");
-  const [first, setFirst] = useState("");
-  const [second, setSecond] = useState("");
+  const [expression, setExpression] = useState("");
+  const [mode, setMode] = useState<"deg" | "rad">("deg");
   const [history, setHistory] = useState<Entry[]>([]);
   const [result, setResult] = useState<Entry | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const request = useRef<AbortController | null>(null);
   const sequence = useRef(0);
-  const firstInput = useRef<HTMLInputElement>(null);
+  const input = useRef<HTMLInputElement>(null);
+  const answer = useRef(0);
   useEffect(() => () => request.current?.abort(), []);
-  const selected = operations.find((item) => item.id === operation)!;
+  function edit(value: string) {
+    setExpression(value);
+    setResult(null);
+    setError("");
+  }
+  function insert(token: string) {
+    const field = input.current!;
+    const start = field.selectionStart ?? expression.length;
+    const end = field.selectionEnd ?? start;
+    const value = token === "Ans" ? `(${answer.current})` : token;
+    edit(expression.slice(0, start) + value + expression.slice(end));
+    field.focus();
+    window.requestAnimationFrame(() =>
+      field.setSelectionRange(start + value.length, start + value.length),
+    );
+  }
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (request.current) return;
     setError("");
     setResult(null);
-    let operands: number[];
-    try {
-      operands = parseOperands(operation, first, second);
-    } catch (err) {
-      setError((err as Error).message);
+    if (!expression.trim() || expression.length > 512) {
+      setError("Enter an expression of 1–512 characters.");
       return;
     }
     const controller = new AbortController();
@@ -38,12 +81,12 @@ export default function App() {
     setLoading(true);
     const timer = window.setTimeout(() => controller.abort(), 10000);
     try {
-      const value = await calculate({ operation, operands }, controller.signal);
-      const entry = {
-        id: ++sequence.current,
-        expression: expression(operation, operands),
-        result: value,
-      };
+      const value = await calculate(
+        { expression, angleMode: mode },
+        controller.signal,
+      );
+      answer.current = value;
+      const entry = { id: ++sequence.current, expression, result: value, mode };
       setResult(entry);
       setHistory((previous) => [entry, ...previous].slice(0, 5));
     } catch (err) {
@@ -60,154 +103,145 @@ export default function App() {
       setLoading(false);
     }
   }
-  function reset() {
-    setFirst("");
-    setSecond("");
-    setError("");
-    setResult(null);
-    firstInput.current?.focus();
-  }
   return (
-    <div className="app">
+    <div className="app scientific-app">
       <header className="topbar">
         <a className="brand" href="/" aria-label="Calc home">
           <span className="brand-icon">=</span>calc
           <span className="brand-dot">.</span>
         </a>
-        <span className="top-note">
-          A LITTLE CLARITY, ONE CALCULATION AT A TIME
-        </span>
+        <span className="top-note">SCIENTIFIC CALCULATOR</span>
       </header>
       <main>
         <section className="intro">
           <p className="eyebrow">
-            <span /> SIMPLE BY DESIGN
+            <span /> EXPLORE THE POSSIBILITIES
           </p>
           <h1>
-            Make it
+            Beyond
             <br />
-            <em>add up.</em>
+            <em>the basics.</em>
           </h1>
           <p className="intro-text">
-            Big ideas. Small calculations.
-            <br />A clear space to work things out.
+            From everyday sums to
+            <br />
+            your next big equation.
           </p>
           <div className="intro-rule" />
           <p className="intro-detail">
-            Seven operations. Zero distractions.
-            <br />
-            Built for the numbers in your day.
+            Trigonometry. Logarithms. Powers.
+            <br />A little space for bigger thinking.
           </p>
           <div className="math-art" aria-hidden="true">
-            <span>+</span>
-            <span>÷</span>
-            <span>×</span>
-            <span>=</span>
+            <span>π</span>
+            <span>√</span>
+            <span>ƒ</span>
+            <span>∞</span>
           </div>
         </section>
         <section className="workspace" aria-label="Calculator">
-          <div className="calculator">
-            <div className="card-heading">
-              <h2>Your calculation</h2>
-              <span className="step">01 — INPUT</span>
-            </div>
+          <div className="calculator scientific-card">
             <form onSubmit={submit} noValidate>
               <fieldset disabled={loading}>
-                <legend>Choose an operation</legend>
-                <div className="operations">
-                  {operations.map((item) => (
+                <legend className="sr-only">Scientific calculator</legend>
+                <div className="card-heading">
+                  <h2>Scientific</h2>
+                  <div className="angle-toggle" aria-label="Angle mode">
+                    {(["deg", "rad"] as const).map((value) => (
+                      <button
+                        type="button"
+                        key={value}
+                        aria-pressed={mode === value}
+                        onClick={() => {
+                          setMode(value);
+                          setResult(null);
+                          setError("");
+                        }}
+                      >
+                        {value.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="scientific-display">
+                  <label htmlFor="expression">EXPRESSION</label>
+                  <input
+                    ref={input}
+                    id="expression"
+                    autoComplete="off"
+                    spellCheck={false}
+                    value={expression}
+                    placeholder="sin(30) + 2^3"
+                    aria-invalid={!!error}
+                    aria-describedby={
+                      error ? "calculation-error" : "expression-help"
+                    }
+                    onChange={(event) => edit(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape") edit("");
+                    }}
+                  />
+                  <div
+                    role="status"
+                    aria-live="polite"
+                    aria-atomic="true"
+                    className="scientific-result"
+                  >
+                    {loading
+                      ? "Calculating…"
+                      : result
+                        ? String(result.result)
+                        : "0"}
+                  </div>
+                </div>
+                <div className="scientific-tools">
+                  <span>{mode === "deg" ? "Degrees" : "Radians"}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      edit("");
+                      input.current?.focus();
+                    }}
+                  >
+                    AC
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Backspace"
+                    onClick={() => {
+                      const field = input.current!;
+                      const start = field.selectionStart ?? expression.length;
+                      const end = field.selectionEnd ?? start;
+                      edit(
+                        expression.slice(
+                          0,
+                          start === end ? Math.max(0, start - 1) : start,
+                        ) + expression.slice(end),
+                      );
+                      field.focus();
+                    }}
+                  >
+                    ⌫
+                  </button>
+                </div>
+                <div className="scientific-keys">
+                  {keys.map(([label, value]) => (
                     <button
-                      key={item.id}
-                      type="button"
+                      key={label}
+                      type={value === "=" ? "submit" : "button"}
                       className={
-                        operation === item.id ? "operation active" : "operation"
+                        value === "="
+                          ? "equals-key"
+                          : /^[0-9.]$/.test(value)
+                            ? "number-key"
+                            : "function-key"
                       }
-                      aria-pressed={operation === item.id}
-                      onClick={() => {
-                        setOperation(item.id);
-                        setError("");
-                        setResult(null);
-                      }}
+                      aria-label={value === "=" ? "Calculate" : label}
+                      onClick={value === "=" ? undefined : () => insert(value)}
                     >
-                      <span aria-hidden="true">{item.symbol}</span>
-                      {item.label}
+                      {label}
                     </button>
                   ))}
-                </div>
-                <p className="operation-help">{selected.description}</p>
-                <div
-                  className={operation === "sqrt" ? "inputs unary" : "inputs"}
-                >
-                  <label htmlFor="first">
-                    {operation === "percentage" ? "Percentage" : "First value"}
-                    <input
-                      ref={firstInput}
-                      id="first"
-                      name="first"
-                      type="text"
-                      inputMode="decimal"
-                      autoComplete="off"
-                      placeholder={
-                        operation === "percentage" ? "15" : "e.g. 24"
-                      }
-                      value={first}
-                      onChange={(e) => {
-                        setFirst(e.target.value);
-                        setResult(null);
-                        setError("");
-                      }}
-                      aria-describedby={
-                        error ? "calculation-error" : "number-help"
-                      }
-                      aria-invalid={!!error}
-                    />
-                  </label>
-                  {operation !== "sqrt" && (
-                    <>
-                      <span className="input-symbol" aria-hidden="true">
-                        {selected.symbol}
-                      </span>
-                      <label htmlFor="second">
-                        {operation === "percentage"
-                          ? "Of this number"
-                          : operation === "power"
-                            ? "Exponent"
-                            : "Second value"}
-                        <input
-                          id="second"
-                          name="second"
-                          type="text"
-                          inputMode="decimal"
-                          autoComplete="off"
-                          placeholder={
-                            operation === "percentage" ? "200" : "e.g. 8"
-                          }
-                          value={second}
-                          onChange={(e) => {
-                            setSecond(e.target.value);
-                            setResult(null);
-                            setError("");
-                          }}
-                          aria-describedby={
-                            error ? "calculation-error" : "number-help"
-                          }
-                          aria-invalid={!!error}
-                        />
-                      </label>
-                    </>
-                  )}
-                </div>
-                <p id="number-help" className="number-help">
-                  Decimals, negative numbers and scientific notation welcome.
-                </p>
-                <div className="actions">
-                  <button className="calculate" type="submit">
-                    {loading ? "Calculating…" : "Calculate"}
-                    <span aria-hidden="true">↗</span>
-                  </button>
-                  <button className="reset" type="button" onClick={reset}>
-                    Clear
-                  </button>
                 </div>
               </fieldset>
               {error && (
@@ -215,31 +249,11 @@ export default function App() {
                   {error}
                 </p>
               )}
+              <p className="number-help" id="expression-help">
+                Enter to calculate · Esc to clear · Use * to multiply
+                <br />% divides by 100 · Ans recalls your last answer
+              </p>
             </form>
-            <div
-              className={"result-panel" + (result ? " has-result" : "")}
-              role="status"
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              <div className="result-label">
-                <span>THE RESULT</span>
-                <span aria-hidden="true">=</span>
-              </div>
-              {result ? (
-                <>
-                  <p className="result-expression">{result.expression}</p>
-                  <span className="result-value">{String(result.result)}</span>
-                </>
-              ) : (
-                <>
-                  <p className="empty-result">
-                    {loading ? "Working it out…" : "Room for an answer."}
-                  </p>
-                  <p className="result-hint">Your result will appear here.</p>
-                </>
-              )}
-            </div>
           </div>
           <section className="history" aria-label="Recent calculations">
             <div className="history-heading">
@@ -254,13 +268,16 @@ export default function App() {
             </div>
             {history.length === 0 ? (
               <p className="history-empty">
-                A fresh start. Your last five calculations will live here.
+                Your last five calculations will appear here.
               </p>
             ) : (
               <ol>
                 {history.map((entry) => (
                   <li key={entry.id}>
-                    <span>{entry.expression}</span>
+                    <span>
+                      {entry.expression}{" "}
+                      <small>({entry.mode.toUpperCase()})</small>
+                    </span>
                     <strong>= {String(entry.result)}</strong>
                   </li>
                 ))}
