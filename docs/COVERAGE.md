@@ -1,31 +1,35 @@
 # Test coverage
 
-Backend measured locally on Windows with Go 1.27.1:
+Scientific calculator verified at commit `5590c25776e54d20a3714e3c130e99a84a526f83` in [GitHub Actions run 34387104366](https://github.com/DJuanParedes/sezzle-calculator/actions/runs/34387104366).
+
+All three jobs passed: frontend tests and production build; backend formatting, vet, race tests and coverage; Docker build and HTTP smoke checks for both calculation endpoints.
+
+## Backend
+
+Measured with Go 1.27.1 locally; the same tests also passed with race detection on Linux CI.
 
 | Package | Statement coverage |
 | --- | ---: |
-| internal/calculator | 100.0% |
+| internal/calculator | 99.4% |
 | internal/httpapi | 100.0% |
 | cmd/server | 0.0% |
-| Total | 78.7% |
+| Total | 90.8% |
 
-The entry-point wiring is exercised by the production Docker smoke test, rather than unit instrumentation. The pure arithmetic and HTTP handler packages both have full statement coverage. Coverage does not establish correctness for every possible input.
+The entry-point wiring is exercised by the Docker smoke test and remains included in the total. Tests cover arithmetic, precedence, right-associative powers, unary signs, trigonometry in both modes, logarithms, factorials, invalid domains, resource limits, malformed HTTP requests and concurrent requests. Coverage is not proof of correctness for every possible input.
 
-Frontend measured with Vitest 4.1.11 and its V8 provider in GitHub Actions:
+## Frontend
+
+Measured with Vitest 4.1.11 and V8 in Linux CI. **39 tests passed.**
 
 | File | Statements | Branches | Functions | Lines |
 | --- | ---: | ---: | ---: | ---: |
-| App.tsx | 100% | 100% | 100% | 100% |
+| App.tsx | 100% | 92.45% | 100% | 100% |
 | api.ts | 100% | 100% | 100% | 100% |
 | calculator.ts | 100% | 100% | 100% | 100% |
-| Total | 100% | 100% | 100% | 100% |
+| Total | 100% | 95.34% | 100% | 100% |
 
-**41 frontend tests passed.** The measured scope excludes main.tsx (React mounting), test files, and CSS. Thresholds are 90% statements/functions/lines and 85% branches. Go's command entry point remains included in the 78.7% backend total rather than being hidden from the report.
+Scope excludes React mounting, test files and CSS. Thresholds remain 90% statements/functions/lines and 85% branches. Tests exercise angle-mode changes, server-driven expression evaluation, selected-text replacement, keypad cursor placement, answer recall, history, input validation, cancellation, timeout, network errors and response validation. Four defensive null-selection fallback branches are not exercised with text inputs.
 
-Verified run: [GitHub Actions run 34383706128](https://github.com/DJuanParedes/sezzle-calculator/actions/runs/34383706128), commit `e38ae89d544eedb83343bc89da2edd95829b1e51`.
+Downloadable HTML, LCOV and JSON reports are attached to the verified CI run while GitHub retains the artifacts. This document preserves the measured summary. The Windows sandbox blocks esbuild child-process creation, so frontend execution and production compilation were performed in Linux CI. The actual Go server also successfully evaluated `sin(30)+2^3` in degree mode as `8.5` locally.
 
-All three jobs passed: frontend tests and production build; backend formatting, vet, race tests and coverage; Docker build and HTTP smoke tests. Downloadable HTML/LCOV/JSON reports are attached to that run while GitHub retains the artifacts. A persistent summary is included in this document.
-
-Additional manual integration checks used the actual Go server and the production React build: all seven API operations, addition and percentage through the UI, division-by-zero feedback, and responsive inspection at 390 × 844. No horizontal overflow was observed. Unit tests also cover network failure and timeouts. These checks are not a claim of formal accessibility certification or exhaustive browser compatibility.
-
-Local environment: Windows, Node 24.19.0 and Go 1.27.1. The frontend was built/tested on Linux CI because the local Windows sandbox blocks esbuild subprocess creation. The Docker job runs the production image as a non-root user and verifies the health endpoint, homepage, and addition response.
+Manual browser checks with the production bundle and actual Go API confirmed `sin(30)+2^3 = 8.5` in DEG and `sin(pi/2) = 1` in RAD. At a 390-pixel viewport, document width was 375 pixels with no horizontal overflow.
