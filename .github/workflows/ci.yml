@@ -1,0 +1,65 @@
+name: Tests and build
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27'
+          cache: false
+      - name: Format, vet, race tests and coverage
+        working-directory: backend
+        run: |
+          test -z "$(gofmt -l .)"
+          go vet ./...
+          go test -race -coverprofile=coverage.out ./...
+          go tool cover -func=coverage.out
+          go tool cover -html=coverage.out -o coverage.html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: |
+            backend/coverage.out
+            backend/coverage.html
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run test:coverage
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and smoke-test production image
+        run: |
+          docker build -t calculator .
+          docker run -d --name calculator -p 8080:8080 calculator
+          trap 'docker logs calculator; docker rm -f calculator' EXIT
+          for i in $(seq 1 20); do
+            if curl --fail http://localhost:8080/api/health; then break; fi
+            sleep 1
+          done
+          curl --fail http://localhost:8080/ | grep 'Calc'
+          curl --fail -H 'Content-Type: application/json' -d '{"operation":"add","operands":[2,3]}' http://localhost:8080/api/calculate | grep '"result":5'

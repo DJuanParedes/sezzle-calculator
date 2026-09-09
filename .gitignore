@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+*.exe
+*.out
+.env
+.DS_Store
+
+/backend/coverage
